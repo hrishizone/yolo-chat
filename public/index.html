@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="ngrok-skip-browser-warning" content="true">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YOLO chat</title>
+    <link rel="stylesheet" href="/style.css" />
+    <meta name="description" content="Anonymous 1-to-1 chat. No sign-up." />
+  </head>
+  <body>
+    <div class="app">
+      <!-- Header -->
+      <header>
+        <h1>YOLO <span>chat</span></h1>
+        <div class="status">
+          <span id="status-dot" class="dot"></span>
+          <span id="status-text">Connecting…</span>
+        </div>
+      </header>
+
+      <!-- Main Chat Area -->
+      <main>
+        <div id="messages" class="messages" aria-live="polite"></div>
+
+        <form id="composer" class="composer" autocomplete="off">
+          <input
+            id="message"
+            type="text"
+            placeholder="Type a message…"
+            maxlength="2000"
+          />
+          <button type="submit" id="send">Send</button>
+        </form>
+      </main>
+
+      <!-- Footer -->
+      <footer>
+        <button id="next" class="secondary">Next</button>
+        <span class="hint">
+          You’re chatting with a random stranger. Don’t share personal info.
+        </span>
+      </footer>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="/client.js"></script>
+  </body>
+</html>

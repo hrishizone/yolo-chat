@@ -1,0 +1,189 @@
+:root {
+  --bg: #0b0f14;
+  --panel: #111826;
+  --muted: #9aa6b6;
+  --text: #f1f5f9;
+  --accent: #3b82f6;
+  --accent-alt: #8b5cff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  background: radial-gradient(1200px 600px at 20% 20%, #101623, #0b0f14);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+/* App Container */
+.app {
+  width: 100%;
+  max-width: 860px;
+  height: 90vh;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: rgba(0,0,0,0.25);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+h1 { font-size: 22px; font-weight: 600; letter-spacing: 0.5px; }
+h1 span { color: var(--accent); }
+.status { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.dot.online { background: #22c55e; box-shadow: 0 0 10px #22c55e80; }
+.dot.waiting { background: #facc15; box-shadow: 0 0 10px #facc1580; }
+.dot.chatting { background: var(--accent); box-shadow: 0 0 10px #3b82f680; }
+
+/* Main Chat Area */
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* ✅ critical for scroll inside flexbox */
+}
+
+.messages {
+  flex: 1;
+  min-height: 0;       /* ✅ prevents footer from being pushed */
+  overflow-y: auto;     /* ✅ scroll messages instead of pushing composer */
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+.messages::-webkit-scrollbar { width: 8px; }
+.messages::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 8px;
+}
+.messages::-webkit-scrollbar-track { background: transparent; }
+
+/* Message bubbles */
+.msg {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  line-height: 1.45;
+  font-size: 15px;
+  word-wrap: break-word;
+}
+.msg.me {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
+  color: white;
+}
+.msg:not(.me) {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.system {
+  align-self: center;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--muted);
+  padding: 4px 8px;
+}
+
+/* Composer (pinned at bottom of main) */
+.composer {
+  flex-shrink: 0;  /* ✅ never shrinks or moves */
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(0,0,0,0.25);
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+#message {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07);
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+}
+#message:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.4);
+}
+#send {
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: var(--accent);
+  border: none;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+#send:hover { background: #2563eb; }
+
+/* Footer (always below chat area) */
+footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(0,0,0,0.25);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  font-size: 13px;
+  color: var(--muted);
+}
+#next {
+  padding: 8px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+#next:hover { background: rgba(255,255,255,0.15); }
+
+/* Scroll-to-bottom button */
+.scroll-down {
+  position: absolute;
+  bottom: 80px;
+  right: 20px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 22px;
+  display: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  transition: opacity 0.2s ease;
+}
+.scroll-down.show {
+  display: block;
+}
