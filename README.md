@@ -1,39 +1,39 @@
-# Omegle Lite
+# 🎉 Welcome to YOLO Chat
 
-Minimal anonymous 1-to-1 chat (Omegle-like) built with Node.js, Express, and Socket.IO.
+YOLO Chat is a fun, anonymous 1-to-1 chat — meet strangers instantly, no signup required.  
 
-## Features
-- Anonymous, instant pairing of two users
-- Next (skip) to find a new stranger
-- Typing indicator
-- Lightweight, no database required
-- Single command to run locally or deploy
+---
 
-## Quick Start (Local)
-```bash
-npm install
-npm start
-# open http://localhost:3000
-```
+## 🔗 How it works
+1. Click **Start** to connect with a random stranger.  
+2. Type messages in the box and hit **Send**.  
+3. Want to meet someone new? Click **Next** to instantly connect with another stranger.  
+4. You stay anonymous — no accounts, no history, no saved messages.  
 
-Open the site in two different browser windows to test chat.
+---
 
-## Deploy (Render/Railway/Heroku/Vercel)
-- **Render/Railway**: Create a new Web Service from this repo. Build command: `npm install`. Start command: `npm start`.
-- **Heroku**: Use the included `Procfile` and push.
-- **Vercel**: Use a Node server. Set Build Command: `npm install`, Output: (leave blank), and Run Command: `npm start`.
+## ✨ Features
+- 💬 Real-time 1-to-1 chat  
+- ⏭️ Skip to the next person anytime  
+- ⌨️ Typing indicator so you know when they’re responding  
+- 🚫 No sign-up, no personal info required  
 
-## Project Structure
-```text
-/public          # Static frontend (HTML/CSS/JS)
-server.js        # Express + Socket.IO backend and matchmaking
-package.json     # Dependencies and scripts
-```
+---
 
-## Environment
-- Requires Node.js 18+
-- Listens on `PORT` env var (falls back to 3000)
+## ⚠️ Safety Tips
+- ✅ Be kind and respectful  
+- ✅ Remember chats are anonymous — share only what you’re comfortable with  
+- ❌ Do **not** share passwords, phone numbers, or sensitive info  
+- ❌ Don’t use the platform for spam, abuse, or illegal content  
 
-## Notes
-- This demo stores no logs or messages server-side.
-- For production, consider rate limiting, abuse filters, reporting, and TOS.
+---
+
+## 📜 Disclaimer
+YOLO Chat is for fun and casual conversation.  
+We do not log or store your chats, but please use responsibly.  
+If you experience harassment, simply click **Next** to move on.  
+
+---
+
+🎯 **Enjoy chatting — you never know who you’ll meet!**
+https://yolo-chat.onrender.com/
