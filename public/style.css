@@ -43,6 +43,14 @@ header {
   background: rgba(0,0,0,0.25);
   border-bottom: 1px solid rgba(255,255,255,0.07);
 }
+
+header .logo img {
+  height: 45px;  /* you can tweak this */
+  width: auto;
+}
+
+
+
 h1 { font-size: 22px; font-weight: 600; letter-spacing: 0.5px; }
 h1 span { color: var(--accent); }
 .status { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
