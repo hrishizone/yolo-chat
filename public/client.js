@@ -50,6 +50,10 @@ let offerStarted = false;
 const pendingIce = [];
 const pendingDescriptions = [];
 
+// Track toggle state
+let audioEnabled = false;
+let videoTrackEnabled = false;
+
 /* ---------- Status ---------- */
 function setStatus(state, text) {
   statusDot.className = "dot";
@@ -73,7 +77,6 @@ function addSystem(text, timeout = 5000) {
   }
 }
 
-
 function addMsg(text, me = false) {
   const div = document.createElement('div');
   div.className = 'msg' + (me ? ' me' : '');
@@ -93,7 +96,7 @@ async function ensureLocalStream() {
   if (localStream) return localStream;
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    
+
     // 🔇 disable both tracks at start
     localStream.getAudioTracks().forEach(t => t.enabled = false);
     localStream.getVideoTracks().forEach(t => t.enabled = false);
@@ -105,7 +108,6 @@ async function ensureLocalStream() {
   }
   return localStream;
 }
-
 
 function attachLocalTracksIfNeeded() {
   if (!pc || !localStream) return;
@@ -144,17 +146,16 @@ function createPeerConnection() {
   };
 
   pc.onnegotiationneeded = async () => {
-    // Only caller creates offers once both are ready
     if (!hasConsentedVideo || !iAmReady || !partnerReady || role !== "caller") return;
     if (makingOffer || offerStarted) return;
     try {
       makingOffer = true;
-      offerStarted = true; // guard
+      offerStarted = true;
       console.log("⚙️ onnegotiationneeded -> creating offer");
       await pc.setLocalDescription(await pc.createOffer());
       emitSignal({ description: pc.localDescription });
     } catch (e) {
-      offerStarted = false; // allow retry if failed
+      offerStarted = false;
       console.error("onnegotiationneeded error", e);
     } finally {
       makingOffer = false;
@@ -192,7 +193,6 @@ async function processPendingWhenReady() {
     }
 
     if (d.type === 'offer') {
-      // Ensure callee has PC + tracks before answering
       if (!pc) {
         console.log("⚙️ Creating PC on offer (callee)");
         createPeerConnection();
@@ -216,7 +216,6 @@ async function processPendingWhenReady() {
       await pc.setLocalDescription(await pc.createAnswer());
       emitSignal({ description: pc.localDescription });
     } else {
-      // answer
       isSettingRemoteAnswerPending = true;
       await pc.setRemoteDescription(d);
       isSettingRemoteAnswerPending = false;
@@ -228,7 +227,6 @@ async function processPendingWhenReady() {
     try { await pc.addIceCandidate(c); } catch (e) { console.warn("ICE add failed", e); }
   }
 
-  // Starter: if onnegotiationneeded didn’t fire at the right time, kick it here
   if (role === "caller" && pc.signalingState === "stable" && !makingOffer && !offerStarted) {
     try {
       makingOffer = true;
@@ -237,7 +235,7 @@ async function processPendingWhenReady() {
       await pc.setLocalDescription(await pc.createOffer());
       emitSignal({ description: pc.localDescription });
     } catch (e) {
-      offerStarted = false; // allow retry if failed
+      offerStarted = false;
       console.error("initial-offer error", e);
     } finally {
       makingOffer = false;
@@ -249,21 +247,11 @@ function emitSignal(payload) {
   socket.emit('signal', { ...payload, to: partnerId });
 }
 
-/* ---------- Nice Consent UI Helpers ---------- */
-function showConsentModal() {
-  consentModal.classList.remove('hidden');
-  // trap a simple focus
-  consentAccept.focus();
-}
-function hideConsentModal() {
-  consentModal.classList.add('hidden');
-}
-function showRequestToast() {
-  requestToast.classList.remove('hidden');
-}
-function hideRequestToast() {
-  requestToast.classList.add('hidden');
-}
+/* ---------- Consent UI Helpers ---------- */
+function showConsentModal() { consentModal.classList.remove('hidden'); consentAccept.focus(); }
+function hideConsentModal() { consentModal.classList.add('hidden'); }
+function showRequestToast() { requestToast.classList.remove('hidden'); }
+function hideRequestToast() { requestToast.classList.add('hidden'); }
 
 /* ---------- Socket events ---------- */
 socket.on('connect', () => setStatus('online', 'Connected. Finding a stranger…'));
@@ -285,7 +273,6 @@ socket.on('chat:start', (data) => {
   setStatus('chatting', 'You are now chatting');
   addSystem('You are now chatting with a stranger. Say hi!');
 
-  // reset all
   hasConsentedVideo = false;
   iAmReady = false;
   partnerReady = false;
@@ -293,9 +280,11 @@ socket.on('chat:start', (data) => {
   pendingIce.length = 0;
   pendingDescriptions.length = 0;
 
-  // make sure UI starts in text
   videoMode = false;
   applyModeUI();
+
+  // 🔄 reset mic/cam at chat start
+  resetControlsUI();
 });
 
 socket.on('chat:ended', teardownToText);
@@ -330,12 +319,8 @@ function requestVideo() {
 }
 toastDismiss?.addEventListener('click', hideRequestToast);
 
-// Incoming request -> show modal instead of confirm()
-socket.on("video:request", () => {
-  showConsentModal();
-});
+socket.on("video:request", () => { showConsentModal(); });
 
-// Modal buttons
 consentAccept?.addEventListener('click', () => {
   hideConsentModal();
   socket.emit("video:accept");
@@ -346,7 +331,6 @@ consentDecline?.addEventListener('click', () => {
   addSystem("You declined the video request.");
 });
 
-// Both sides get video:accept
 socket.on("video:accept", async () => {
   hideRequestToast();
 
@@ -355,7 +339,6 @@ socket.on("video:accept", async () => {
   applyModeUI();
   socket.emit('mode:changed', { videoMode: true });
 
-  // Have PC + tracks ready before any SDP flows
   await ensureLocalStream();
   createPeerConnection();
   attachLocalTracksIfNeeded();
@@ -366,8 +349,6 @@ socket.on("video:accept", async () => {
   await processPendingWhenReady();
 });
 
-
-// If someone declines
 socket.on("video:decline", () => {
   hideRequestToast();
   addSystem("Stranger declined the video request.");
@@ -377,7 +358,6 @@ socket.on("video:decline", () => {
   partnerReady = false;
 });
 
-// Partner says they are ready
 socket.on("video:ready", async () => {
   partnerReady = true;
   console.log("🎬 Partner ready");
@@ -427,7 +407,6 @@ nextBtn.addEventListener('click', () => {
 
 /* ---------- Controls ---------- */
 if (muteBtn) {
-  let audioEnabled = false; // start muted
   muteBtn.addEventListener('click', () => {
     if (!localStream) return;
     audioEnabled = !audioEnabled;
@@ -439,7 +418,6 @@ if (muteBtn) {
 }
 
 if (camBtn) {
-  let videoTrackEnabled = false; // start camera OFF
   camBtn.addEventListener('click', () => {
     if (!localStream) return;
     videoTrackEnabled = !videoTrackEnabled;
@@ -449,7 +427,6 @@ if (camBtn) {
     document.getElementById("camOffIcon").classList.toggle("hidden", videoTrackEnabled);
   });
 }
-
 
 if (endBtn) {
   endBtn.addEventListener('click', () => {
@@ -468,7 +445,6 @@ function applyModeUI() {
     chatArea.classList.remove("active");
     videoArea.classList.add("active");
 
-    // Show chat icon, hide camera
     document.getElementById("videoIcon").classList.add("hidden");
     document.getElementById("chatIcon").classList.remove("hidden");
     modeToggle.setAttribute("title", "Switch to Chat");
@@ -477,12 +453,10 @@ function applyModeUI() {
     videoArea.classList.remove("active");
     chatArea.classList.add("active");
 
-    // Show camera icon, hide chat
     document.getElementById("chatIcon").classList.add("hidden");
     document.getElementById("videoIcon").classList.remove("hidden");
     modeToggle.setAttribute("title", "Switch to Video");
 
-    // cleanup
     if (localStream) {
       localStream.getTracks().forEach((t) => t.stop());
       localStream = null;
@@ -492,6 +466,7 @@ function applyModeUI() {
       pc = null;
     }
     strangerVideo.srcObject = null;
+
     pendingIce.length = 0;
     pendingDescriptions.length = 0;
     makingOffer = false;
@@ -501,6 +476,9 @@ function applyModeUI() {
     iAmReady = false;
     partnerReady = false;
     offerStarted = false;
+
+    // 🔄 reset UI state
+    resetControlsUI();
   }
 }
 
@@ -510,10 +488,8 @@ applyModeUI();
 if (modeToggle) {
   modeToggle.addEventListener("click", async () => {
     if (!videoMode) {
-      // request consent (custom UI + toast)
       requestVideo();
     } else {
-      // back to text immediately
       videoMode = false;
       applyModeUI();
       socket.emit('mode:changed', { videoMode: false });
@@ -529,4 +505,15 @@ function teardownToText() {
   hideRequestToast();
   videoMode = false;
   applyModeUI();
+}
+
+function resetControlsUI() {
+  audioEnabled = false;
+  videoTrackEnabled = false;
+
+  document.getElementById("micOnIcon").classList.add("hidden");
+  document.getElementById("micOffIcon").classList.remove("hidden");
+
+  document.getElementById("camOnIcon").classList.add("hidden");
+  document.getElementById("camOffIcon").classList.remove("hidden");
 }
