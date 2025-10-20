@@ -13,7 +13,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// CSP: allow ws/wss, blob/data for media; keep things simple for WebRTC + socket.io
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -60,19 +59,18 @@ function pair(a, b) {
   partnerOf.set(a.id, b.id);
   partnerOf.set(b.id, a.id);
 
-  // Deterministic roles: 'a' (dequeued) is caller (impolite), 'b' is callee (polite)
   const caller = a;
   const callee = b;
 
   caller.emit("chat:start", {
     partnerId: callee.id,
-    role: "caller",           // impolite
+    role: "caller",
     partnerVideoMode: !!userModes.get(callee.id),
   });
 
   callee.emit("chat:start", {
     partnerId: caller.id,
-    role: "callee",           // polite
+    role: "callee",
     partnerVideoMode: !!userModes.get(caller.id),
   });
 
@@ -80,9 +78,7 @@ function pair(a, b) {
 }
 
 function enqueue(socket) {
-  if (partnerOf.has(socket.id)) return; // already paired
-
-  // find a waiting partner
+  if (partnerOf.has(socket.id)) return;
   for (let i = 0; i < queue.length; i++) {
     const waiting = queue[i];
     if (waiting.connected && !partnerOf.has(waiting.id)) {
@@ -91,8 +87,6 @@ function enqueue(socket) {
       return;
     }
   }
-
-  // nobody free → wait
   queue.push(socket);
   socket.emit("queue:waiting");
 }
@@ -114,7 +108,7 @@ function unpair(socket) {
 // ---------------- CONNECTION ----------------
 io.on("connection", (socket) => {
   console.log("🔗 New user", socket.id);
-  userModes.set(socket.id, false); // default = text
+  userModes.set(socket.id, false);
   enqueue(socket);
 
   // --- NEXT ---
@@ -126,7 +120,8 @@ io.on("connection", (socket) => {
   // --- TEXT CHAT ---
   socket.on("chat:message", (msg) => {
     const partner = getPartner(socket.id);
-    if (partner) partner.emit("chat:message", { text: String(msg || "").slice(0, 2000) });
+    if (partner)
+      partner.emit("chat:message", { text: String(msg || "").slice(0, 2000) });
   });
 
   socket.on("chat:typing", (isTyping) => {
@@ -155,7 +150,6 @@ io.on("connection", (socket) => {
   socket.on("video:accept", () => {
     const partner = getPartner(socket.id);
     if (partner) {
-      // Notify both sides
       partner.emit("video:accept");
       socket.emit("video:accept");
       console.log(`✅ ${socket.id} accepted video with ${partner.id}`);
@@ -170,7 +164,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // 🔔 VIDEO READY (handshake to avoid race conditions)
   socket.on("video:ready", () => {
     const partner = getPartner(socket.id);
     if (partner) {
@@ -179,7 +172,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  // --- UNIFIED SIGNALING (SDP + ICE) ---
+  // --- UNIFIED SIGNALING ---
   socket.on("signal", ({ description, candidate, to }) => {
     const partner = io.sockets.sockets.get(to) || getPartner(socket.id);
     if (!partner) return;
@@ -191,6 +184,47 @@ io.on("connection", (socket) => {
       partner.emit("signal", { candidate, from: socket.id });
     }
   });
+
+  // --- GAME LOGIC (Tic Tac Toe) ---
+  socket.on("game:init", () => {
+    const partner = getPartner(socket.id);
+    if (!partner) {
+      socket.emit("game:error", { message: "No partner found" });
+      console.log(`⚠️ game:init by ${socket.id} but no partner`);
+      return;
+    }
+    socket.emit("game:start", { starter: true });
+    partner.emit("game:start", { starter: false });
+    console.log(`🎮 Game started between ${socket.id} and ${partner.id}`);
+  });
+
+  socket.on("game:move", ({ index, symbol }) => {
+    const partner = getPartner(socket.id);
+    if (partner) {
+      partner.emit("game:move", { index, symbol });
+    }
+  });
+
+// --- GAME LOGIC (Connect Four) ---
+socket.on("connect4:init", () => {
+  const partner = getPartner(socket.id);
+  if (!partner) {
+    socket.emit("connect4:error", { message: "No partner found" });
+    console.log(`⚠️ connect4:init by ${socket.id} but no partner`);
+    return;
+  }
+  socket.emit("connect4:start", { starter: true });
+  partner.emit("connect4:start", { starter: false });
+  console.log(`🟡 Connect Four started between ${socket.id} and ${partner.id}`);
+});
+
+socket.on("connect4:move", ({ col, symbol }) => {
+  const partner = getPartner(socket.id);
+  if (partner) {
+    partner.emit("connect4:move", { col, symbol });
+  }
+});
+
 
   // --- DISCONNECT ---
   socket.on("disconnect", () => {
